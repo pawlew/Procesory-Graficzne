@@ -1,0 +1,399 @@
+{\rtf1\ansi\ansicpg1250\deff0{\fonttbl{\f0\fnil\fprq1\fcharset238{\*\fname Courier New;}Courier New CE;}{\f1\fswiss\fcharset238{\*\fname Arial;}Arial CE;}}
+{\colortbl ;\red0\green0\blue255;\red163\green21\blue21;\red0\green128\blue0;}
+{\*\generator Msftedit 5.41.15.1507;}\viewkind4\uc1\pard\cf1\lang1045\f0\fs20 #include\cf0  \cf2 "stdafx.h"\par
+\cf1 #include\cf0  \cf2 <GLFrame.h>\par
+\cf1 #include\cf0  \cf2 <GLMatrixStack.h>\par
+\cf1 #include\cf0  \cf2 <GLGeometryTransform.h>\par
+\cf1 #include\cf0  \cf2 <GLTools.h>\par
+\cf1 #include\cf0  \cf2 <GLFrustum.h>\par
+\cf1 #include\cf0  \cf2 <StopWatch.h>\par
+\cf1 #include\cf0  \cf2 <math3d.h>\par
+\cf1 #define\cf0  FREEGLUT_STATIC\par
+\cf1 #include\cf0  \cf2 <GL/glut.h>\par
+\par
+\cf1 float\cf0  vertices_icosahedron[3 * 12] = \{ 0.0,             \tab 0.0,            \tab -0.9510565162951536,\par
+                                   \tab 0.0,             \tab 0.0,             \tab 0.9510565162951536,\par
+                                  \tab -0.85065080835204,\tab 0.0,            \tab -0.42532540417601994,\par
+                                   \tab 0.85065080835204,\tab 0.0,             \tab 0.42532540417601994,\par
+                                   \tab 0.6881909602355868, -0.5,            \tab -0.42532540417601994,\par
+                                   \tab 0.6881909602355868,  0.5,            \tab -0.42532540417601994,\par
+                                  \tab -0.6881909602355868, -0.5,             \tab 0.42532540417601994,\par
+                                  \tab -0.6881909602355868,  0.5,             \tab 0.42532540417601994,\par
+                                  \tab -0.2628655560595668, -0.8090169943749475, -0.42532540417601994,\par
+                                  \tab -0.2628655560595668,  0.8090169943749475, -0.42532540417601994,\par
+                                   \tab 0.2628655560595668, -0.8090169943749475,  0.42532540417601994,\par
+                                   \tab 0.2628655560595668,  0.8090169943749475,  0.42532540417601994\par
+                                 \tab\};\par
+\cf1 int\cf0  faces_icosahedron[3 * 20] = \{  1, 11,  7,\par
+                               \tab 1,  7,  6,\par
+                               \tab 1,  6, 10,\par
+                               \tab 1, 10,  3,\par
+                               \tab 1,  3, 11,\par
+                               \tab 4,  8,  0,\par
+                               \tab 5,  4,  0,\par
+                               \tab 9,  5,  0,\par
+                               \tab 2,  9,  0,\par
+                               \tab 8,  2,  0,\par
+                              \tab 11,  9,  7,\par
+                               \tab 7,  2,  6,\par
+                               \tab 6,  8, 10,\par
+                              \tab 10,  4,  3,\par
+                               \tab 3,  5, 11,\par
+                               \tab 4, 10,  8,\par
+                               \tab 5,  3,  4,\par
+                               \tab 9, 11,  5,\par
+                               \tab 2,  7,  9,\par
+                               \tab 8,  6,  2 \};\par
+\par
+\cf1 struct\cf0  punktowe_swiatlo \{\par
+   \cf1 float\cf0  position[3];\par
+   \cf1 float\cf0  intensity_diffuse[3];\par
+   \cf1 float\cf0  intensity_specular[3];\par
+   \cf1 float\cf0  attenuation[3];\par
+\par
+   \cf1 void\cf0  set_position(\cf1 float\cf0  x, \cf1 float\cf0  y, \cf1 float\cf0  z) \{\par
+  \tab position[0] = x;\par
+  \tab position[1] = y;\par
+  \tab position[2] = z;\par
+   \}\par
+\par
+   \cf1 void\cf0  set_intensity_diffuse(\cf1 float\cf0  r, \cf1 float\cf0  g, \cf1 float\cf0  b) \{\par
+  \tab intensity_diffuse[0] = r;\par
+  \tab intensity_diffuse[1] = g;\par
+  \tab intensity_diffuse[2] = b;\par
+   \}\par
+\par
+   \cf1 void\cf0  set_intensity_specular(\cf1 float\cf0  r, \cf1 float\cf0  g, \cf1 float\cf0  b) \{\par
+  \tab intensity_specular[0] = r;\par
+  \tab intensity_specular[1] = g;\par
+  \tab intensity_specular[2] = b;\par
+   \}\par
+\par
+     \cf1 void\cf0  set_attenuation(\cf1 float\cf0  attenuation_0, \cf1 float\cf0  attenuation_1, \cf1 float\cf0  attenuation_2) \{\par
+  \tab attenuation[0] = attenuation_0;\par
+  \tab attenuation[1] = attenuation_1;\par
+  \tab attenuation[2] = attenuation_2;\par
+   \}\par
+\};\par
+\par
+\cf1 struct\cf0  Material \{\par
+   \cf1 float\cf0  r_ambient; \par
+   \cf1 float\cf0  r_diffuse; \par
+   \cf1 float\cf0  r_spectacular;  \par
+   \cf1 float\cf0  alpha;\par
+\par
+   \cf1 void\cf0  set_parameters(\cf1 float\cf0  r_ambient, \cf1 float\cf0  r_diffuse, \cf1 float\cf0  r_spectacular, \cf1 float\cf0  alpha) \{\par
+  \tab\cf1 this\cf0 ->r_ambient = r_ambient;\par
+  \tab\cf1 this\cf0 ->r_diffuse = r_diffuse;\par
+  \tab\cf1 this\cf0 ->r_spectacular = r_spectacular;\par
+  \tab\cf1 this\cf0 ->alpha = alpha;\par
+   \}\par
+\};\par
+GLuint shader_swiatlo,\par
+   \tab ShaderColor,\par
+   \tab MVPMatrixLocation_ShaderColor,\par
+   \tab MVPMatrixLocation,\par
+   \tab mvMatrix_location,\par
+   \tab vMatrix_location,\par
+   \tab NormalMatrix_location,\par
+   \tab intensity_ambient_component_location,\par
+   \tab swiatlo_0_position_location,\par
+   \tab swiatlo_0_intensity_diffuse_location,\par
+   \tab swiatlo_0_intensity_specular_location,\par
+   \tab swiatlo_0_attenuation_location,\par
+   \tab material_0_r_ambient_location,\par
+   \tab material_0_r_diffuse_location,\par
+   \tab material_0_r_spectacular_location,\par
+   \tab material_0_alpha_location;\par
+GLGeometryTransform geometry_pipeline;\par
+GLMatrixStack p_stack;\par
+GLMatrixStack mv_stack;\par
+GLFrame cameraFrame;\par
+GLFrustum viewFrustum;\par
+\par
+\cf3 //ustawienie poczatkowe kamery\par
+\cf1 float\cf0  location[] = \{1.5f, -1.0f, -1.5f\};\par
+\cf1 float\cf0  target[] = \{0.0f, 0.0f, 0.0f\};\par
+\cf1 float\cf0  up_dir[] = \{0.0f, 0.0f, 1.0f\};\par
+\cf1 float\cf0  camera_matrix[16];\par
+\cf1 float\cf0  intensity_ambient_component[] = \{0.2f, 0.2f, 0.2f\};\par
+\par
+\par
+CStopWatch timer;\par
+punktowe_swiatlo swiatlo_0;\par
+Material material_0;\par
+\cf1 void\cf0  SetUpFrame(GLFrame & frame, \cf1 const\cf0  M3DVector3f origin, \cf1 const\cf0  M3DVector3f forward, \cf1 const\cf0  M3DVector3f up) \{\par
+   frame.SetOrigin(origin);\par
+   frame.SetForwardVector(forward);\par
+   M3DVector3f side, oUp;\par
+   m3dCrossProduct3(side, forward, up);\par
+   m3dCrossProduct3(oUp, side, forward);\par
+   frame.SetUpVector(oUp);\par
+   frame.Normalize();\par
+\}\par
+\cf1 void\cf0  LookAt(GLFrame & frame, \cf1 const\cf0  M3DVector3f eye, \cf1 const\cf0  M3DVector3f at, \cf1 const\cf0  M3DVector3f up) \{\par
+   M3DVector3f forward;\par
+   m3dSubtractVectors3(forward, at, eye);\par
+   SetUpFrame(frame, eye, forward, up);\par
+\}\par
+\par
+\cf1 void\cf0  change_size(\cf1 int\cf0  w, \cf1 int\cf0  h) \{\par
+   viewFrustum.SetPerspective(70.0f, (\cf1 float\cf0 )w / h, 1.0f, 150.0f);\par
+   glViewport(0, 0, w, h);\par
+\}\par
+\cf1 void\cf0  SetupRC() \{\par
+   glClearColor(0.0f, 0.0f, 0.0f, 1.0f);\par
+   shader_swiatlo = gltLoadShaderPairWithAttributes(\cf2 "gouraud_shader.vp"\cf0 , \cf2 "gouraud_shader.fp"\cf0 , 3, GLT_ATTRIBUTE_VERTEX, \cf2 "vPosition"\cf0 , GLT_ATTRIBUTE_COLOR, \cf2 "vColor"\cf0 , GLT_ATTRIBUTE_NORMAL, \cf2 "vertex_normal"\cf0 );\par
+   ShaderColor = gltLoadShaderPairWithAttributes(\cf2 "pass_thru_shader.vp"\cf0 , \cf2 "pass_thru_shader.fp"\cf0 , 2, GLT_ATTRIBUTE_VERTEX, \cf2 "vPosition"\cf0 , GLT_ATTRIBUTE_COLOR, \cf2 "vColor"\cf0 );\par
+   MVPMatrixLocation_ShaderColor = glGetUniformLocation(ShaderColor, \cf2 "mvpMatrix"\cf0 );\par
+   MVPMatrixLocation = glGetUniformLocation(shader_swiatlo, \cf2 "mvpMatrix"\cf0 );\par
+   mvMatrix_location = glGetUniformLocation(shader_swiatlo, \cf2 "mvMatrix"\cf0 );\par
+   vMatrix_location = glGetUniformLocation(shader_swiatlo, \cf2 "vMatrix"\cf0 );\par
+   NormalMatrix_location = glGetUniformLocation(shader_swiatlo, \cf2 "NormalMatrix"\cf0 );\par
+   intensity_ambient_component_location = glGetUniformLocation(shader_swiatlo, \cf2 "intensity_ambient_component"\cf0 );\par
+   swiatlo_0_position_location = glGetUniformLocation(shader_swiatlo, \cf2 "swiatlo_0.position"\cf0 );\par
+   swiatlo_0_intensity_diffuse_location = glGetUniformLocation(shader_swiatlo, \cf2 "swiatlo_0.intensity_diffuse"\cf0 );\par
+   swiatlo_0_intensity_specular_location = glGetUniformLocation(shader_swiatlo, \cf2 "swiatlo_0.intensity_specular"\cf0 );\par
+   swiatlo_0_attenuation_location = glGetUniformLocation(shader_swiatlo, \cf2 "swiatlo_0.attenuation"\cf0 );\par
+   material_0_r_ambient_location = glGetUniformLocation(shader_swiatlo, \cf2 "material_0.r_ambient"\cf0 );\par
+   material_0_r_diffuse_location = glGetUniformLocation(shader_swiatlo, \cf2 "material_0.r_diffuse"\cf0 );\par
+   material_0_r_spectacular_location = glGetUniformLocation(shader_swiatlo, \cf2 "material_0.r_spectacular"\cf0 );\par
+   material_0_alpha_location = glGetUniformLocation(shader_swiatlo, \cf2 "material_0.alpha"\cf0 );\par
+   swiatlo_0.set_position(0.0f, 0.0f, 0.0f);\par
+   swiatlo_0.set_intensity_diffuse(1.0f, 1.0f, 1.0f);\par
+   swiatlo_0.set_intensity_specular(0.0f, 0.0f, 0.0f);\par
+   swiatlo_0.set_attenuation(0.1f, 0.1f, 0.0f);\cf3 // Jasno\'9c\'e6 \'9cwiat\'b3a od obiektu\par
+\cf0    material_0.set_parameters(1.0f, 1.0f, 1.0f, 200.0f);\par
+   geometry_pipeline.SetMatrixStacks(mv_stack, p_stack);\par
+   glEnable(GL_CULL_FACE);\par
+   glEnable(GL_DEPTH_TEST);\par
+   glFrontFace(GL_CCW);\par
+\}\par
+\par
+\cf1 void\cf0  rysuj_tr_normal(\cf1 const\cf0  \cf1 float\cf0  A[], \cf1 const\cf0  \cf1 float\cf0  B[], \cf1 const\cf0  \cf1 float\cf0  C[], \cf1 float\cf0  wektor_normalny[3], \cf1 float\cf0  r = 1.0f, \cf1 float\cf0  g = 1.0f, \cf1 float\cf0  b = 1.0f) \{\par
+   glBegin(GL_TRIANGLES);\par
+  \tab glVertexAttrib3f(GLT_ATTRIBUTE_COLOR, r, g, b);\par
+  \tab glVertexAttrib3fv(GLT_ATTRIBUTE_NORMAL, wektor_normalny);\par
+  \tab glVertex3fv(A);\par
+  \tab glVertex3fv(B);\par
+  \tab glVertex3fv(C);\par
+   glEnd();\par
+\}\par
+\par
+\cf1 void\cf0  rysuj_tr(\cf1 const\cf0  \cf1 float\cf0  A[], \cf1 const\cf0  \cf1 float\cf0  B[], \cf1 const\cf0  \cf1 float\cf0  C[], \cf1 float\cf0  r = 1.0f, \cf1 float\cf0  g = 1.0f, \cf1 float\cf0  b = 1.0f) \{\tab\cf3 // potrzebne do oswietlenia\par
+\cf0    glBegin(GL_TRIANGLES);\par
+  \tab glVertexAttrib3f(GLT_ATTRIBUTE_COLOR, r, g, b);\par
+  \tab glVertex3fv(A);\par
+  \tab glVertex3fv(B);\par
+  \tab glVertex3fv(C);\par
+   glEnd();\par
+\}\par
+\par
+\cf1 void\cf0  oblicz_normalny(\cf1 float\cf0  result[], \cf1 const\cf0  \cf1 float\cf0  A[], \cf1 const\cf0  \cf1 float\cf0  B[], \cf1 const\cf0  \cf1 float\cf0  C[]) \{\par
+   \cf1 float\cf0  C_min_B[3], A_min_B[3];\par
+   m3dSubtractVectors3(C_min_B, C, B);\par
+   m3dSubtractVectors3(A_min_B, A, B);\par
+   m3dCrossProduct3(result, C_min_B, A_min_B);\par
+   m3dNormalizeVector3(result);\par
+\}\par
+\par
+\cf1 void\cf0  wierzcholki(\cf1 float\cf0  out_array[], \cf1 float\cf0  a0, \cf1 float\cf0  a1,\cf1 float\cf0  a2) \{\par
+   out_array[0] = a0;\par
+   out_array[1] = a1;\par
+   out_array[2] = a2;\par
+\}\par
+\par
+\cf1 void\cf0  rysuj_piramide() \{\tab\tab\cf3 //  rysuje bez podstawy\par
+\cf0    \cf1 float\cf0  A[3], B[3], C[3], wektor_normalny[3];\par
+   \cf3 // pierwsza \par
+\cf0    wierzcholki(A, -0.5f,-0.5f, 0.0f);\par
+   wierzcholki(B, 0.5f,-0.5f,  0.0f);\par
+   wierzcholki(C, 0.0f, 0.0f, 1.0f);\par
+   oblicz_normalny(wektor_normalny, A, B, C);\par
+   rysuj_tr_normal(A, B, C, wektor_normalny, 0.5f, 0.5f, 0.5f);\par
+   \cf3 // druga \par
+\cf0    wierzcholki(A, -0.5f, 0.5f, 0.0f);\par
+   wierzcholki(B,-0.5f,-0.5f, 0.0f);\par
+   wierzcholki(C, 0.0f, 0.0f, 1.0f);\par
+   oblicz_normalny(wektor_normalny, A, B, C);\par
+   rysuj_tr_normal(A, B, C, wektor_normalny, 0.5f, 0.3f, 0.3f);\par
+   \cf3 // trzecia\par
+\cf0    wierzcholki(A, 0.5f, 0.5f, 0.0f);\par
+   wierzcholki(B, -0.5f, 0.5f, 0.0f);\par
+   wierzcholki(C, 0.0f, 0.0f, 1.0f);\par
+   oblicz_normalny(wektor_normalny, A, B, C);\par
+   rysuj_tr_normal(A, B, C, wektor_normalny, 0.0f, 0.9f, 0.9f);\par
+   \cf3 // czwarta\par
+\cf0    wierzcholki(A, 0.5f,-0.5f, 0.0f);\par
+   wierzcholki(B, 0.5f, 0.5f, 0.0f);\par
+   wierzcholki(C,  0.0f, 0.0f,  1.0f);\par
+   oblicz_normalny(wektor_normalny, A, B, C);\par
+   rysuj_tr_normal(A, B, C, wektor_normalny, 0.0f, 0.9f, 0.1f);\par
+\}\par
+\par
+\cf1 void\cf0  rysuj_swiatlo() \{\par
+   \cf1 float\cf0  A[3], B[3], C[3], wektor_normalny[3];\par
+   \cf3 // podstawa\par
+\cf0\tab wierzcholki(A, 1.0f, -1.0f, 0.0f);\par
+   wierzcholki(B, -1.0f, -1.0f, 0.0f);\par
+   wierzcholki(C,  1.0f,  1.0f, 0.0f);\par
+   rysuj_tr(A, B, C, 1.0f, 0.5f, 0.2f);\par
+  wierzcholki(A, -1.0f, 1.0f, 0.0f);\par
+   wierzcholki(B, 1.0f, 1.0f, 0.0f);\par
+   wierzcholki(C,-1.0f,-1.0f, 0.0f);\par
+   rysuj_tr(A, B, C, 1.0f, 0.5f, 0.2f);\par
+   \cf3 //// sciany\par
+\cf0    wierzcholki(A, 1.0f,-1.0f, 0.0f);\par
+   wierzcholki(B, 1.0f, 1.0f, 0.0f);\par
+   wierzcholki(C, 0.0f, 0.0f, 3.0f);\par
+   rysuj_tr(A, B, C, 1.0f, 0.5f, 0.2f);\par
+\par
+   wierzcholki(A, 1.0f, 1.0f, 0.0f);\par
+   wierzcholki(B,-1.0f, 1.0f, 0.0f);\par
+   wierzcholki(C, 0.0f, 0.0f, 3.0f);\par
+   rysuj_tr(A, B, C, 1.0f, 0.5f, 0.2f);\par
+\par
+   wierzcholki(A,-1.0f, -1.0f, 0.0f);\par
+   wierzcholki(B, 0.0f, 0.0f, 3.0f);\par
+   wierzcholki(C, -1.0f, 1.0f, 0.0f);\par
+   rysuj_tr(A, B, C,  1.0f, 0.5f, 0.2f);\par
+ \par
+   wierzcholki(A, 1.0f, -1.0f, 0.0f);\par
+   wierzcholki(B, 0.0f, 0.0f, 3.0f);\par
+   wierzcholki(C, -1.0f, -1.0f, 0.0f);\par
+   rysuj_tr(A, B, C,  1.0f, 0.5f, 0.2f);\par
+\}\par
+\par
+\cf1 void\cf0  draw_icosahedron(\cf1 int\cf0  n_faces, \cf1 float\cf0  * vertices, \cf1 int\cf0  * faces) \{\par
+   \cf1 float\cf0  wektor_normalny[3];\par
+   \cf1 for\cf0 (\cf1 int\cf0  i = 0; i < n_faces; ++i) \{\par
+  \tab oblicz_normalny(wektor_normalny, vertices + 3 * faces[3 * i], vertices + 3 * faces[3 * i + 1], vertices + 3 * faces[3 * i + 2]);\par
+  \tab rysuj_tr_normal(vertices + 3 * faces[3 * i], vertices + 3 * faces[3 * i + 1], vertices + 3 * faces[3 * i + 2], wektor_normalny, 0.0f, 0.0f, 0.9f);\par
+   \}\par
+\}\par
+\par
+\cf1 void\cf0  draw_icosahedron_smooth(\cf1 int\cf0  n_faces, \cf1 float\cf0  *vertices, \cf1 int\cf0  *faces) \{\par
+   \cf1 float\cf0  wektor_normalny[3];\par
+   \cf1 for\cf0 (\cf1 int\cf0  i = 0; i < n_faces; ++i) \{\par
+  \tab\cf1 for\cf0 (\cf1 int\cf0  j=0 ; j < 3 ; ++j) \{\par
+     \tab m3dCopyVector3(wektor_normalny, vertices + 3 * faces[i * 3 + j]);\par
+     \tab m3dNormalizeVector3(wektor_normalny);\par
+     \tab rysuj_tr_normal(vertices + 3 * faces[3 * i], vertices + 3 * faces[3 * i + 1], vertices + 3 * faces[3 * i + 2], wektor_normalny, 1.0f, 0.0f, 0.0f);\par
+  \tab\}\par
+   \}\par
+\}\par
+\par
+\cf1 void\cf0  rysuj_podloge() \{\par
+   \cf1 float\cf0  A[3], B[3], C[3], wektor_normalny[] = \{0.0f, 0.0f, 1.0f\};\tab\cf3 //wektor normalny skierowany do g\'f3ry\par
+\cf0    \cf1 for\cf0 (\cf1 int\cf0  i = -5; i < 6; i += 2) \{\par
+  \tab\cf1 for\cf0 (\cf1 int\cf0  j = -5; j < 6; j += 2) \{\par
+     \tab wierzcholki(A, (\cf1 float\cf0 )i + -1.0f, (\cf1 float\cf0 )j + -1.0f, -0.0f);\par
+     \tab wierzcholki(B, (\cf1 float\cf0 )i + 1.0f, (\cf1 float\cf0 )j + -1.0f, -0.0f);\par
+     \tab wierzcholki(C, (\cf1 float\cf0 )i + 1.0f, (\cf1 float\cf0 )j + 1.0f, -0.0f);\par
+     \tab rysuj_tr_normal(A, B, C, wektor_normalny, 0.05f, 0.0f, 0.8f);\par
+     \tab wierzcholki(A, (\cf1 float\cf0 )i + 1.0f, (\cf1 float\cf0 )j + 1.0f, -0.0f);\par
+     \tab wierzcholki(B, (\cf1 float\cf0 )i + -1.0f, (\cf1 float\cf0 )j + 1.0f, -0.0f);\par
+     \tab wierzcholki(C, (\cf1 float\cf0 )i + -1.0f, (\cf1 float\cf0 )j + -1.0f, -0.0f);\par
+     \tab rysuj_tr_normal(A, B, C, wektor_normalny, 0.05f, 0.8f, 0.0f);\par
+  \tab\}\par
+   \}\par
+\}\par
+\par
+\par
+\par
+\cf1 void\cf0  render_scene(\cf1 void\cf0 ) \{\par
+   \cf1 float\cf0  angle = timer.GetElapsedSeconds() * 3.14f / 5.0f;\par
+   location[0] = 10.0f * cos(angle / 2.0f);\cf3 //ustawienie kamery\par
+\cf0    location[1] = 10.0f * sin(angle / 2.0f);\par
+   location[2] = 8.0f;\par
+   \cf3 // swiatlo w stalym punkcie\par
+\cf0    swiatlo_0.position[0] = 5.0f;\par
+   swiatlo_0.position[1] = 5.0f;\par
+   \cf3 // ruchome swiatlo\par
+\cf0    swiatlo_0.position[0] = 5.0f * cos(angle);  \cf3 // swiatlo odwrotnie do obrotu kamery\par
+\cf0    swiatlo_0.position[1] = 5.0f * sin(angle);\par
+   swiatlo_0.position[2] = 5.0f;\par
+   LookAt(cameraFrame, location, target, up_dir);\par
+   cameraFrame.GetCameraMatrix(camera_matrix);\par
+   p_stack.LoadMatrix(viewFrustum.GetProjectionMatrix());\par
+   mv_stack.LoadMatrix(camera_matrix);\par
+   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);\par
+ \par
+   glUseProgram(ShaderColor);\par
+   mv_stack.PushMatrix();\par
+   mv_stack.Translate(swiatlo_0.position[0], swiatlo_0.position[1], swiatlo_0.position[2]);\par
+   mv_stack.Scale(0.25f, 0.25f, 0.25f);\par
+   glUniformMatrix4fv(MVPMatrixLocation_ShaderColor, 1, GL_FALSE, geometry_pipeline.GetModelViewProjectionMatrix());\par
+   rysuj_swiatlo();\par
+   mv_stack.PopMatrix();\par
+ \par
+   glUseProgram(shader_swiatlo);\par
+   glUniformMatrix3fv(NormalMatrix_location, 1, GL_FALSE, geometry_pipeline.GetNormalMatrix());\par
+   glUniformMatrix4fv(vMatrix_location, 1, GL_FALSE, camera_matrix);\par
+   glUniform3fv(intensity_ambient_component_location, 1, intensity_ambient_component);\par
+   glUniform3fv(swiatlo_0_position_location, 1, swiatlo_0.position);\par
+   glUniform3fv(swiatlo_0_intensity_diffuse_location, 1, swiatlo_0.intensity_diffuse);\par
+   glUniform3fv(swiatlo_0_intensity_specular_location, 1, swiatlo_0.intensity_specular);\par
+   glUniform3fv(swiatlo_0_attenuation_location, 1, swiatlo_0.attenuation);\par
+   glUniform1f(material_0_r_ambient_location, material_0.r_ambient);\par
+   glUniform1f(material_0_r_diffuse_location, material_0.r_diffuse);\par
+   glUniform1f(material_0_r_spectacular_location, material_0.r_spectacular);\par
+   glUniform1f(material_0_alpha_location, material_0.alpha);\par
+ \par
+   glUniformMatrix4fv(MVPMatrixLocation, 1, GL_FALSE, geometry_pipeline.GetModelViewProjectionMatrix());\par
+   glUniformMatrix4fv(mvMatrix_location, 1, GL_FALSE, geometry_pipeline.GetModelViewMatrix());\par
+ \par
+\tab\tab rysuj_podloge();\par
+\tab\tab\cf3 //pierwsza piramida\par
+\cf0      \tab mv_stack.PushMatrix();\par
+     \tab mv_stack.Translate(0.0f, 0.0f, 0.0f);\par
+     \tab glUniformMatrix4fv(MVPMatrixLocation, 1, GL_FALSE, geometry_pipeline.GetModelViewProjectionMatrix());\par
+     \tab glUniformMatrix4fv(mvMatrix_location, 1, GL_FALSE, geometry_pipeline.GetModelViewMatrix());\par
+     \tab rysuj_piramide();\par
+   \tab     mv_stack.PopMatrix();\par
+     \tab\cf3 //druga piramida\par
+\cf0\tab\tab mv_stack.PushMatrix();\par
+     \tab mv_stack.Translate(3.0f, 2.0f, 0.0f);\par
+\tab\tab mv_stack.Scale(2.0f, 2.0f, 2.0f);\par
+     \tab glUniformMatrix4fv(MVPMatrixLocation, 1, GL_FALSE, geometry_pipeline.GetModelViewProjectionMatrix());\par
+     \tab glUniformMatrix4fv(mvMatrix_location, 1, GL_FALSE, geometry_pipeline.GetModelViewMatrix());\par
+     \tab rysuj_piramide();\par
+   \tab     mv_stack.PopMatrix();\par
+\tab\tab\cf3 //dwudziestosciany\par
+\cf0\tab\tab mv_stack.PushMatrix();\par
+\tab\tab mv_stack.Translate(0.0f, 0.0f, 2.0f);\par
+\tab\tab glUniformMatrix4fv(MVPMatrixLocation, 1, GL_FALSE, geometry_pipeline.GetModelViewProjectionMatrix());\par
+\tab\tab glUniformMatrix4fv(mvMatrix_location, 1, GL_FALSE, geometry_pipeline.GetModelViewMatrix());\par
+\tab\tab draw_icosahedron(20, vertices_icosahedron, faces_icosahedron);\par
+\tab\tab mv_stack.PopMatrix();\par
+ \par
+\tab\tab mv_stack.PushMatrix();\par
+\tab\tab mv_stack.Translate(-2.0f, 0.0f, 4.0f);\par
+\tab\tab glUniformMatrix4fv(MVPMatrixLocation, 1, GL_FALSE, geometry_pipeline.GetModelViewProjectionMatrix());\par
+\tab\tab glUniformMatrix4fv(mvMatrix_location, 1, GL_FALSE, geometry_pipeline.GetModelViewMatrix());\par
+\tab\tab draw_icosahedron_smooth(20, vertices_icosahedron, faces_icosahedron);\par
+\tab\tab mv_stack.PopMatrix();\par
+\tab\tab\cf3 //\par
+\par
+\cf0    glUseProgram(0);\par
+   glutSwapBuffers();\par
+   glutPostRedisplay();\par
+\}\par
+\par
+\cf1 int\cf0  main(\cf1 int\cf0  argc, \cf1 char\cf0 * argv[]) \{\par
+   glutInit(&argc, argv);\par
+   glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH | GLUT_STENCIL);\par
+   glutInitWindowSize(600, 600);\par
+   glutCreateWindow(\cf2 "cwiczenie 4"\cf0 );\par
+   glutReshapeFunc(change_size);\par
+   glutDisplayFunc(render_scene);\par
+   GLenum err = glewInit();\par
+   \cf1 if\cf0 (GLEW_OK != err) \{\par
+  \tab\cf1 return\cf0  1;\par
+   \}\par
+   SetupRC();\par
+   glutMainLoop();\par
+   \cf1 return\cf0  0;\par
+\}\f1\par
+}
+ 
