@@ -1,0 +1,13 @@
+#version 330
+
+in vec4 vVertex;
+in vec4 vColor;
+
+uniform mat4x4 MVPMatrix;
+uniform mat4x4 ViewProjectionMatrix;
+out vec4 vVaryingColor;
+
+void main() {
+    vVaryingColor = vColor;
+    gl_Position = ViewProjectionMatrix * vVertex;
+}

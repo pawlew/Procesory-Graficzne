@@ -1,0 +1,19 @@
+	#version 330
+
+in vec4 vPosition;
+in vec3 vertex_normal;
+
+out vec3 vPosition_eye_space;
+out vec3 vertex_normal_eye_space;
+out vec4 fragment_color;
+
+uniform mat4 mvMatrix;
+uniform mat4 mvpMatrix;
+uniform mat3 NormalMatrix;
+
+void main() {
+   vPosition_eye_space = (mvMatrix * vPosition).xyz;
+   vertex_normal_eye_space = NormalMatrix * vertex_normal;
+   fragment_color = vec4(0.912, 0.782, 0.082, 1);
+   gl_Position = mvpMatrix * vPosition;
+}

@@ -1,0 +1,20 @@
+#version 330
+
+in vec4 vPosition;
+in vec3 vertex_normal;
+in vec2 vertex_texture_coordinates;
+
+out vec3 vPosition_eye_space;
+out vec3 vertex_normal_eye_space;
+out vec2 texture_coordinates;
+
+uniform mat4 mvMatrix;
+uniform mat4 mvpMatrix;
+uniform mat3 NormalMatrix;
+
+void main() {
+  vPosition_eye_space = (mvMatrix * vPosition).xyz;
+  vertex_normal_eye_space = NormalMatrix * vertex_normal;
+  texture_coordinates = vertex_texture_coordinates;
+  gl_Position = mvpMatrix * vPosition;
+}

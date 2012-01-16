@@ -1,0 +1,49 @@
+#version 330
+
+struct punktowe_swiatlo {
+   vec3 position;
+   vec3 intensity_diffuse;
+   vec3 intensity_specular;
+   // attenuation = 1 / (attenuation[0] + attenuation[1] * distance_to_swiatlo + attenuation[2] * pow(distance_to_swiatlo, 2))
+   vec3 attenuation;
+};
+
+struct Material {
+   float r_ambient; 
+   float r_diffuse; 
+   float r_spectacular; 
+   float alpha; 
+};
+
+in vec4 vPosition;
+in vec4 vColor;
+in vec3 vertex_normal;
+out vec4 fragment_color;
+
+uniform mat4 mvMatrix;
+uniform mat4 vMatrix;
+uniform mat4 mvpMatrix;
+uniform mat3 NormalMatrix;
+uniform vec3 intensity_ambient_component;
+uniform punktowe_swiatlo swiatlo_0;
+uniform Material material_0;
+
+void main() {
+   vec3 vertex_normal_eye_space = NormalMatrix * vertex_normal;
+   vec3 vPosition_eye_space = (mvMatrix * vPosition).xyz;
+   vec3 swiatlo_position_eye_space = (vMatrix * vec4(swiatlo_0.position, 1)).xyz;
+   vec3 vector_to_swiatlo = swiatlo_position_eye_space - vPosition_eye_space;
+   float distance_to_swiatlo = length(vector_to_swiatlo);
+   vector_to_swiatlo = normalize(vector_to_swiatlo);
+   fragment_color = material_0.r_ambient * vec4(intensity_ambient_component, 1);
+   float attenuation = 1.0 / (swiatlo_0.attenuation[0] + swiatlo_0.attenuation[1] * distance_to_swiatlo + swiatlo_0.attenuation[2] * pow(distance_to_swiatlo, 2));
+   float NdotL = dot(vector_to_swiatlo, vertex_normal_eye_space);
+
+   fragment_color += material_0.r_diffuse * vColor * max(NdotL, 0.0) * vec4(swiatlo_0.intensity_diffuse, 1) * attenuation;
+   if(NdotL > 0.0) {
+
+  	vec3 H = normalize(vector_to_swiatlo - vPosition_eye_space);
+  	fragment_color += material_0.r_spectacular * vec4(swiatlo_0.intensity_specular, 1) * pow(dot(H, vertex_normal_eye_space), material_0.alpha) * attenuation;
+   }
+   gl_Position = mvpMatrix * vPosition;
+}
